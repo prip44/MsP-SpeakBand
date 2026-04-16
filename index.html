@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ms. P SpeakBand — IELTS Speaking Practice</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- ==================== FIREBASE SDK ==================== -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],body:['DM Sans','sans-serif']}}}}
+</script>
+<style>
+:root{--bg:#0A0A0A;--bg2:#111;--card:#1A1A1A;--card2:#222;--border:#2A2A2A;--text:#EDEDED;--muted:#777;--accent:#FF6B35;--accent2:#FF8F5E;--accent-glow:rgba(255,107,53,.12);--success:#34D399;--warn:#FBBF24;--danger:#F87171;--admin:#818cf8;--admin-glow:rgba(129,140,248,.12)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Space Grotesk',sans-serif}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--bg2);border-right:1px solid var(--border);z-index:50;display:none;flex-direction:column}
+.sidebar .logo{padding:24px 20px;border-bottom:1px solid var(--border)}
+.sidebar .nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;margin:2px 8px;border-radius:10px;cursor:pointer;color:var(--muted);transition:all .2s;font-size:14px;font-weight:500}
+.sidebar .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.sidebar .nav-item.active{color:var(--accent);background:var(--accent-glow)}
+.sidebar .nav-item.admin-item.active{color:var(--admin);background:var(--admin-glow)}
+.main{margin-left:240px;padding:32px 40px;min-height:100vh;display:none}
+.view{display:none}.view.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;transition:all .25s}
+.card:hover{border-color:#333}
+.btn{padding:10px 22px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s;border:none;display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn-admin{background:var(--admin);color:#fff}.btn-admin:hover{background:#6366f1;transform:translateY(-1px)}
+.btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:#444;background:#2a2a2a}
+.btn-ghost{background:transparent;color:var(--muted)}.btn-ghost:hover{color:var(--text)}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px}
+.btn-danger{background:rgba(248,113,113,.1);color:var(--danger);border:1px solid rgba(248,113,113,.2)}.btn-danger:hover{background:rgba(248,113,113,.2)}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600}
+.badge-accent{background:var(--accent-glow);color:var(--accent)}
+.badge-success{background:rgba(52,211,153,.1);color:var(--success)}
+.badge-warn{background:rgba(251,191,36,.1);color:var(--warn)}
+.badge-admin{background:var(--admin-glow);color:var(--admin)}
+.score-circle{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:4px solid var(--border)}
+.score-circle .score-num{font-family:'Space Grotesk';font-size:42px;font-weight:700;line-height:1}
+.score-circle .score-label{font-size:12px;color:var(--muted);margin-top:2px}
+.criteria-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;flex:1}
+.criteria-bar-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.record-btn{width:88px;height:88px;border-radius:50%;border:4px solid var(--danger);background:transparent;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center}
+.record-btn .inner{width:36px;height:36px;border-radius:50%;background:var(--danger);transition:all .3s}
+.record-btn.recording .inner{width:28px;height:28px;border-radius:6px}
+.record-btn.recording{animation:pulseRec 1.5s infinite}
+@keyframes pulseRec{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.4)}50%{box-shadow:0 0 0 20px rgba(248,113,113,0)}}
+.transcript-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;min-height:120px;max-height:200px;overflow-y:auto;font-size:15px;line-height:1.7}
+.transcript-box .interim{color:var(--muted);font-style:italic}
+.transcript-box .filler{color:var(--warn);text-decoration:underline;text-decoration-style:dotted}
+.transcript-box .advanced{color:var(--success);font-weight:600}
+.timer-display{font-family:'Space Grotesk';font-size:48px;font-weight:300;letter-spacing:2px}
+.part-card{cursor:pointer;padding:28px;border-radius:16px;background:var(--card);border:2px solid var(--border);transition:all .3s}
+.part-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.part-card .part-num{font-family:'Space Grotesk';font-size:56px;font-weight:700;color:var(--accent);opacity:.3;line-height:1}
+.topic-card{cursor:pointer;padding:20px;border-radius:14px;background:var(--card);border:1px solid var(--border);transition:all .25s;position:relative;overflow:hidden}
+.topic-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.topic-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity .25s}
+.topic-card:hover::after{opacity:1}
+.topic-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.cat-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid transparent;color:var(--muted);background:transparent;white-space:nowrap}
+.cat-tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.cat-tab.active{color:var(--accent);background:var(--accent-glow);border-color:rgba(255,107,53,.2)}
+.tip-card{border-left:3px solid var(--accent);padding:16px 20px;background:var(--card);border-radius:0 12px 12px 0}
+.stat-card{text-align:center;padding:20px}
+.stat-card .stat-val{font-family:'Space Grotesk';font-size:28px;font-weight:700}
+.stat-card .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+.history-item{padding:16px 20px;border-radius:12px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.history-item:hover{border-color:#444;background:var(--card2)}
+.fade-in{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.analyzing-dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin:0 3px;animation:dotBounce 1.4s infinite}
+.analyzing-dots span:nth-child(2){animation-delay:.2s}
+.analyzing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}}
+.toast{position:fixed;bottom:24px;right:24px;padding:14px 22px;border-radius:12px;background:var(--card2);border:1px solid var(--border);font-size:14px;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.bg-noise{position:fixed;top:0;left:0;width:100%;height:100%;opacity:.03;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.glow-orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;opacity:.08}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-overlay.show{display:flex}
+.modal-content{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px;max-width:460px;width:90%}
+.modal-input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.modal-input:focus{border-color:var(--accent)}
+.landing-card{cursor:pointer;border-radius:20px;background:var(--card);border:2px solid var(--border);padding:40px;transition:all .3s;text-align:center}
+.landing-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.landing-card.student:hover{border-color:var(--accent)}
+.landing-card.instructor:hover{border-color:var(--admin)}
+.waveform-bar{width:4px;border-radius:2px;background:var(--accent);transition:height .05s}
+.mic-level-ring{width:120px;height:120px;border-radius:50%;border:3px solid var(--border);display:flex;align-items:center;justify-content:center;transition:border-color .3s}
+.mic-level-ring.active{border-color:var(--success)}
+.admin-table{width:100%;border-collapse:separate;border-spacing:0}
+.admin-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.admin-table td{padding:14px 16px;font-size:14px;border-bottom:1px solid var(--border)}
+.admin-table tbody tr{cursor:pointer;transition:background .15s}
+.admin-table tbody tr:hover td{background:var(--card2)}
+.confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+.conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.conn-dot.on{background:var(--success);box-shadow:0 0 6px var(--success)}
+.conn-dot.off{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-row{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--accent)}
+.code-block{background:#0d0d0d;border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'Space Grotesk',monospace;font-size:13px;color:var(--success);overflow-x:auto;margin:12px 0;position:relative;white-space:pre-wrap;word-break:break-all}
+.code-block .copy-btn{position:absolute;top:8px;right:8px;background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'DM Sans'}
+.code-block .copy-btn:hover{color:var(--text);border-color:#444}
+.origin-banner{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(251,191,36,.08));border:1px solid rgba(248,113,113,.2);border-radius:16px;padding:32px}
+.setup-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
+@media(max-width:768px){
+.sidebar{width:100%;bottom:auto;height:auto;top:auto;bottom:0;border-right:none;border-top:1px solid var(--border);padding:4px 0}
+.sidebar.open{display:flex}
+.sidebar .logo,.sidebar .nav-text,.sidebar .student-info{display:none}
+.sidebar nav{display:flex;width:100%;justify-content:space-around}
+.sidebar .nav-item{flex-direction:column;gap:4px;padding:8px 12px;margin:0;font-size:10px}
+.sidebar .nav-item i{font-size:18px}
+.main{margin-left:0!important;padding:20px 16px 100px!important}
+.mobile-header{display:flex!important}
+}
+</style>
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="glow-orb" style="width:400px;height:400px;background:var(--accent);top:-100px;right:-100px"></div>
+<div class="glow-orb" style="width:300px;height:300px;background:#6366f1;bottom:-80px;left:-80px"></div>
+<canvas id="confetti" class="confetti-canvas"></canvas>
+
+<div class="mobile-header hidden items-center justify-between mb-4">
+  <h2 class="font-display font-bold text-lg">Ms. P SpeakBand</h2>
+  <button onclick="toggleSidebar()" style="border:none;background:none;cursor:pointer;color:var(--muted);font-size:18px"><i class="fas fa-bars"></i></button>
+</div>
+
+<!-- ========== SETUP PAGE (shows when Firebase not configured) ========== -->
+<div id="setup-page" style="display:none;min-height:100vh;padding:40px 20px">
+  <div style="max-width:720px;margin:0 auto" class="fade-in">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#ff9a5c);display:flex;align-items:center;justify-content:center;margin:0 auto 20px"><i class="fas fa-database text-white text-xl"></i></div>
+      <h1 class="font-display text-3xl font-bold mb-2">One-Time Setup Required</h1>
+      <p style="color:var(--muted);font-size:15px">Connect this app to Firebase so student data syncs across devices</p>
+    </div>
+
+    <div class="setup-card">
+      <h3 class="font-display font-semibold text-base mb-4"><i class="fas fa-1" style="color:var(--accent);margin-right:8px"></i>Create a Firebase Project</h3>
+      <div class="step-row"><div class="step-num">a</div><div style="font-size:13px;line-height:1.6">Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent);font-weight:600">console.firebase.google.com</a> and sign in with a Google account</div></div>
+      <div class="step-row"><div class="step-num">b</div><div style="font-size:13px;line-height:1.6">Click <strong>"Create a project"</strong> → name it <strong>"SpeakBand"</strong> → click Continue → Create Project</div></div>
+      <div class="step-row" style="margin-bottom:0"><div class="step-num">c</div><div style="font-size:13px;line-height:1.6">Click the <strong>web icon</strong> <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">&lt;/&gt;</code> to register your app → name it anything → click <strong>"Register app"</strong></div></div>
+    </div>
+
+    <div class="setup-card">
+      <h3 class="font-display font-semibold text-base mb-4"><i class="fas fa-2" style="color:var(--accent);margin-right:8px"></i>Enable Realtime Database</h3>
+      <div class="step-row"><div class="step-num">a</div><div style="font-size:13px;line-height:1.6">In the left sidebar, click <strong>"Build"</strong> → <strong>"Realtime Database"</strong></div></div>
+      <div class="step-row"><div class="step-num">b</div><div style="font-size:13px;line-height:1.6">Click <strong>"Create Database"</strong> → choose any location → select <strong>"Start in test mode"</strong> → click <strong>Enable</strong></div></div>
+    </div>
+
+    <div class="setup-card">
+      <h3 class="font-display font-semibold text-base mb-4"><i class="fas fa-3" style="color:var(--accent);margin-right:8px"></i>Copy Your Config</h3>
+      <div class="step-row"><div class="step-num">a</div><div style="font-size:13px;line-height:1.6">Click the <strong>gear icon</strong> ⚙️ top-left → <strong>"Project settings"</strong></div></div>
+      <div class="step-row"><div class="step-num">b</div><div style="font-size:13px;line-height:1.6">Scroll to <strong>"Your apps"</strong> → you'll see a <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">firebaseConfig</code> block like this:</div></div>
+      <div class="code-block" style="color:var(--muted);font-size:12px">const firebaseConfig = {
+  apiKey: "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxx",
+  authDomain: "speakband-xxxxx.firebaseapp.com",
+  databaseURL: "https://speakband-xxxxx-default-rtdb.firebaseio.com",
+  projectId: "speakband-xxxxx",
+  storageBucket: "speakband-xxxxx.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
+};</div>
+    </div>
+
+    <div class="setup-card">
+      <h3 class="font-display font-semibold text-base mb-4"><i class="fas fa-4" style="color:var(--accent);margin-right:8px"></i>Paste Config Into This File</h3>
+      <div class="step-row"><div class="step-num">a</div><div style="font-size:13px;line-height:1.6">Open this HTML file in any text editor (Notepad, VS Code, etc.)</div></div>
+      <div class="step-row"><div class="step-num">b</div><div style="font-size:13px;line-height:1.6">Search for <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--warn)">PASTE YOUR FIREBASE CONFIG HERE</code></div></div>
+      <div class="step-row"><div class="step-num">c</div><div style="font-size:13px;line-height:1.6">Replace the entire firebaseConfig block with your own values from step 3. <strong>Save the file.</strong></div></div>
+    </div>
+
+    <div class="setup-card">
+      <h3 class="font-display font-semibold text-base mb-4"><i class="fas fa-5" style="color:var(--accent);margin-right:8px"></i>Host It (GitHub Pages — Free)</h3>
+      <div class="step-row"><div class="step-num">a</div><div style="font-size:13px;line-height:1.6">Go to <a href="https://github.com" target="_blank" style="color:var(--accent);font-weight:600">github.com</a> → create free account</div></div>
+      <div class="step-row"><div class="step-num">b</div><div style="font-size:13px;line-height:1.6">Click <strong>"New repository"</strong> → name it <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">speakband</code> → Create</div></div>
+      <div class="step-row"><div class="step-num">c</div><div style="font-size:13px;line-height:1.6">Click <strong>"Add file"</strong> → <strong>"Upload files"</strong> → upload this HTML as <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">index.html</code></div></div>
+      <div class="step-row"><div class="step-num">d</div><div style="font-size:13px;line-height:1.6">Go to <strong>Settings</strong> → <strong>Pages</strong> → Branch: <strong>main</strong> → Save</div></div>
+      <div class="step-row" style="margin-bottom:0"><div class="step-num">e</div><div style="font-size:13px;line-height:1.6">Wait 1 minute. Your site is live at <strong style="color:var(--success)">https://YOUR_USERNAME.github.io/speakband/</strong></div></div>
+    </div>
+
+    <div style="padding:20px;border-radius:12px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);text-align:center">
+      <p style="font-size:14px;color:var(--success);line-height:1.6"><i class="fas fa-check-circle" style="margin-right:6px"></i><strong>After setup:</strong> Refresh this page. If you see the SpeakBand landing page with a green <span class="conn-dot on"></span> dot, it worked!</p>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <button class="btn btn-secondary" onclick="location.reload()"><i class="fas fa-rotate-right"></i> I've Done the Setup — Reload</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== LANDING PAGE ========== -->
+<div id="landing-page" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center">
+  <div class="fade-in" style="max-width:800px;width:100%">
+    <div style="margin-bottom:40px">
+      <div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--accent),#ff9a5c);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 8px 30px rgba(255,107,53,.3)"><i class="fas fa-microphone text-white text-2xl"></i></div>
+      <h1 class="font-display" style="font-size:clamp(2rem,5vw,3.5rem);font-weight:700;line-height:1.1;margin-bottom:12px">Ms. P <span style="color:var(--accent)">SpeakBand</span></h1>
+      <p style="color:var(--muted);font-size:clamp(1rem,2vw,1.15rem);max-width:500px;margin:0 auto;line-height:1.6">IELTS Speaking Practice with AI-powered feedback and band scoring</p>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+      <div class="landing-card student" onclick="enterAsStudent()"><div style="width:56px;height:56px;border-radius:14px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="fas fa-user-graduate" style="color:var(--accent);font-size:22px"></i></div><h2 class="font-display text-xl font-bold mb-2">Student</h2><p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">Practice speaking, get instant band scores, track your progress</p><button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px" onclick="event.stopPropagation();enterAsStudent()"><i class="fas fa-microphone"></i> Enter as Student</button></div>
+      <div class="landing-card instructor" onclick="showPinModal()"><div style="width:56px;height:56px;border-radius:14px;background:var(--admin-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="fas fa-shield-halved" style="color:var(--admin);font-size:22px"></i></div><h2 class="font-display text-xl font-bold mb-2">Instructor</h2><p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">View all student data, track progress, export reports</p><button class="btn btn-admin" style="width:100%;justify-content:center;padding:14px" onclick="event.stopPropagation();showPinModal()"><i class="fas fa-lock"></i> Enter as Instructor</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== REGISTER MODAL ========== -->
+<div id="register-modal" class="modal-overlay">
+  <div class="modal-content fade-in">
+    <div class="text-center mb-6"><div style="width:56px;height:56px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="fas fa-microphone text-white text-xl"></i></div><h2 class="font-display text-2xl font-bold mb-1">Ms. P SpeakBand</h2><p style="color:var(--muted);font-size:14px">Enter your details to get started</p></div>
+    <div class="mb-4"><label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px">Full Name</label><input type="text" id="reg-name" class="modal-input" placeholder="e.g. Ahmed Al-Rashid"></div>
+    <div class="mb-6"><label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px">Email Address</label><input type="email" id="reg-email" class="modal-input" placeholder="e.g. ahmed@student.edu"></div>
+    <button class="btn btn-primary justify-center text-base py-3 mb-3" onclick="submitRegistration()" style="width:100%" id="reg-submit-btn"><i class="fas fa-arrow-right"></i> Get Started</button>
+    <p style="font-size:11px;color:var(--muted);text-align:center">Use the same email on any device to access your progress</p>
+  </div>
+</div>
+
+<!-- ========== PIN MODAL ========== -->
+<div id="pin-modal" class="modal-overlay">
+  <div class="modal-content fade-in">
+    <div class="text-center mb-6"><div style="width:56px;height:56px;border-radius:14px;background:var(--admin-glow);border:1px solid rgba(129,140,248,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="fas fa-lock" style="color:var(--admin);font-size:20px"></i></div><h2 class="font-display text-2xl font-bold mb-1">Instructor Access</h2><p style="color:var(--muted);font-size:14px">Enter your PIN (default: 1234)</p></div>
+    <div class="mb-6"><input type="password" id="pin-input" class="modal-input text-center" style="font-size:24px;letter-spacing:8px;font-family:'Space Grotesk'" placeholder="----" maxlength="6" onkeydown="if(event.key==='Enter')verifyPin()"></div>
+    <div class="flex gap-3"><button class="btn btn-secondary flex-1 justify-center" onclick="closePinModal()">Cancel</button><button class="btn btn-admin flex-1 justify-center" onclick="verifyPin()"><i class="fas fa-unlock"></i> Unlock</button></div>
+  </div>
+</div>
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo"><div class="flex items-center gap-3"><div style="width:36px;height:36px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center"><i class="fas fa-microphone text-white text-sm"></i></div><div><div class="font-display font-bold text-base">Ms. P SpeakBand</div><div style="font-size:11px;color:var(--muted);display:flex;align-items:center"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">Checking...</span></div></div></div></div>
+  <nav class="flex-1 py-4">
+    <div class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><i class="fas fa-th-large" style="width:20px;text-align:center"></i><span class="nav-text">Dashboard</span></div>
+    <div class="nav-item" data-view="practice" onclick="navigate('practice')"><i class="fas fa-microphone" style="width:20px;text-align:center"></i><span class="nav-text">Practice</span></div>
+    <div class="nav-item" data-view="mictest" onclick="navigate('mictest')"><i class="fas fa-headphones" style="width:20px;text-align:center"></i><span class="nav-text">Test Mic</span></div>
+    <div class="nav-item" data-view="history" onclick="navigate('history')"><i class="fas fa-clock-rotate-left" style="width:20px;text-align:center"></i><span class="nav-text">History</span></div>
+    <div class="nav-item" data-view="tips" onclick="navigate('tips')"><i class="fas fa-lightbulb" style="width:20px;text-align:center"></i><span class="nav-text">Tips</span></div>
+    <div style="height:1px;background:var(--border);margin:12px 20px"></div>
+    <div class="nav-item admin-item" data-view="admin" onclick="showPinModal()"><i class="fas fa-shield-halved" style="width:20px;text-align:center"></i><span class="nav-text">Instructor</span></div>
+  </nav>
+  <div class="student-info" id="student-info" style="padding:16px 20px;border-top:1px solid var(--border);display:none">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Logged in as</div>
+    <div id="student-name-display" style="font-size:13px;font-weight:600;margin-bottom:4px"></div>
+    <div id="student-email-display" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="logoutStudent()"><i class="fas fa-right-from-bracket"></i> Switch Student</button>
+  </div>
+</aside>
+
+<!-- ========== MAIN CONTENT ========== -->
+<div class="main" id="main-area">
+  <div id="view-dashboard" class="view active"></div>
+  <div id="view-mictest" class="view"></div>
+  <div id="view-practice" class="view"></div>
+  <div id="view-history" class="view"></div>
+  <div id="view-tips" class="view"></div>
+  <div id="view-admin" class="view"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ==================================================================
+   ██████╗  █████╗ ████████╗ █████╗     ███╗   ███╗███████╗████████╗
+   ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗    ████╗ ████║██╔════╝╚══██╔══╝
+   ██████╔╝███████║   ██║   ███████║    ██╔████╔██║█████╗     ██║
+   ██╔══██╗██╔══██║   ██║   ██╔══██║    ██║╚██╔╝██║██╔══╝     ██║
+   ██║  ██║██║  ██║   ██║   ██║  ██║    ██║ ╚═╝ ██║███████╗   ██║
+   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝   ╚═╝
+
+   PASTE YOUR FIREBASE CONFIG HERE
+   Replace everything below with the config from your Firebase console
+   ================================================================== */
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY_HERE",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+  databaseURL: "PASTE_YOUR_DATABASE_URL_HERE",
+  projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID_HERE",
+  appId: "PASTE_YOUR_APP_ID_HERE"
+};
+/* ================================================================== END FIREBASE CONFIG ================================================================== */
+
+var db = null;
+var firebaseReady = false;
+var currentStudent = null;
+var cachedSessions = [];
+
+/* ========== FIREBASE INIT ========== */
+function initFirebase() {
+  if (firebaseConfig.apiKey.indexOf('PASTE_') === 0) return false;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+    db.ref('.info/connected').on('value', function(snap) {
+      updateConnStatus(snap.val() === true);
+    });
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+function updateConnStatus(connected) {
+  var dot = document.getElementById('conn-dot');
+  var label = document.getElementById('conn-label');
+  if (!dot || !label) return;
+  if (connected) { dot.className = 'conn-dot on'; label.textContent = 'Online'; }
+  else { dot.className = 'conn-dot off'; label.textContent = 'Offline'; }
+}
+
+function studentKey(email) { return email.replace(/\./g, '_').replace(/@/g, '_at_'); }
+
+/* ========== FIREBASE DATA OPERATIONS ========== */
+async function findOrCreateStudent(name, email) {
+  var key = studentKey(email);
+  var snap = await db.ref('students/' + key).once('value');
+  if (snap.exists()) {
+    var data = snap.val();
+    currentStudent = { id: key, name: data.name, email: data.email, streak: data.streak || 0, lastPracticeDate: data.lastPracticeDate || null };
+    await refreshSessions();
+    return { existing: true };
+  } else {
+    var student = { name: name, email: email, registered: new Date().toISOString(), streak: 0, lastPracticeDate: null };
+    await db.ref('students/' + key).set(student);
+    currentStudent = { id: key, name: name, email: email, streak: 0, lastPracticeDate: null };
+    cachedSessions = [];
+    return { existing: false };
+  }
+}
+
+async function refreshSessions() {
+  if (!currentStudent) { cachedSessions = []; return; }
+  var snap = await db.ref('students/' + currentStudent.id + '/sessions').once('value');
+  cachedSessions = [];
+  if (snap.exists()) {
+    snap.forEach(function(child) { cachedSessions.push(child.val()); });
+  }
+  cachedSessions.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+}
+
+async function saveSessionToFirebase(analysis) {
+  if (!currentStudent) return;
+  var ci = topicCategories.find(function(c) { return c.id === state.selectedCatId; });
+  var questionText = typeof state.currentQuestion === 'string' ? state.currentQuestion : (state.currentQuestion.cue || state.currentTopic);
+  var sessionData = {
+    date: new Date().toISOString(), part: state.selectedPart, topic: state.currentTopic,
+    category: state.selectedCatId, categoryName: ci ? ci.name : '', question: questionText,
+    transcript: state.finalTranscript, duration: state.recordDuration, wordCount: analysis.wordCount, analysis: analysis
+  };
+  await db.ref('students/' + currentStudent.id + '/sessions').push(sessionData);
+  cachedSessions.push(sessionData);
+  // Update streak
+  var today = new Date().toDateString();
+  var last = currentStudent.lastPracticeDate;
+  var ns = currentStudent.streak || 0;
+  if (!last) ns = 1;
+  else { var diff = Math.floor((new Date(today) - new Date(last)) / 86400000); if (diff === 1) ns++; else if (diff > 1) ns = 1; }
+  await db.ref('students/' + currentStudent.id).update({ streak: ns, lastPracticeDate: today });
+  currentStudent.streak = ns;
+  currentStudent.lastPracticeDate = today;
+}
+
+async function loadAllStudentsForAdmin() {
+  var snap = await db.ref('students').once('value');
+  var students = [];
+  if (snap.exists()) {
+    snap.forEach(function(child) {
+      var data = child.val();
+      var sessions = [];
+      if (data.sessions) { Object.keys(data.sessions).forEach(function(k) { sessions.push(data.sessions[k]); }); }
+      sessions.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+      students.push({ id: child.key, name: data.name, email: data.email, streak: data.streak || 0, sessions: sessions });
+    });
+  }
+  return students;
+}
+
+async function loadStudentDetailForAdmin(sid) {
+  var snap = await db.ref('students/' + sid).once('value');
+  if (!snap.exists()) return null;
+  var data = snap.val();
+  var sessions = [];
+  if (data.sessions) { Object.keys(data.sessions).forEach(function(k) { sessions.push(data.sessions[k]); }); }
+  sessions.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  return { id: sid, name: data.name, email: data.email, streak: data.streak || 0, sessions: sessions };
+}
+
+async function deleteStudentFromFirebase(sid) {
+  await db.ref('students/' + sid).remove();
+}
+
+/* ========== QUESTION BANKS (same as before) ========== */
+var topicCategories=[{id:'people',name:'People & Relationships',icon:'fa-users',color:'#f472b6',desc:'Family, friends, colleagues'},{id:'places',name:'Places & Travel',icon:'fa-map-location-dot',color:'#22d3ee',desc:'Hometowns, cities, destinations'},{id:'education',name:'Education & Learning',icon:'fa-graduation-cap',color:'#818cf8',desc:'School, university, subjects'},{id:'work',name:'Work & Career',icon:'fa-briefcase',color:'#fb923c',desc:'Jobs, ambition, workplace'},{id:'technology',name:'Technology & Media',icon:'fa-microchip',color:'#a78bfa',desc:'Internet, gadgets, social media'},{id:'health',name:'Health & Lifestyle',icon:'fa-heart-pulse',color:'#34d399',desc:'Exercise, diet, wellbeing'},{id:'environment',name:'Environment & Nature',icon:'fa-leaf',color:'#4ade80',desc:'Climate, pollution, sustainability'},{id:'culture',name:'Culture & Society',icon:'fa-masks-theater',color:'#fbbf24',desc:'Traditions, festivals, arts'},{id:'sports',name:'Sports & Hobbies',icon:'fa-futbol',color:'#f87171',desc:'Games, leisure, competition'},{id:'food',name:'Food & Cooking',icon:'fa-utensils',color:'#fb7185',desc:'Cuisine, eating habits'},{id:'shopping',name:'Shopping & Fashion',icon:'fa-bag-shopping',color:'#c084fc',desc:'Consumer habits, brands'},{id:'home',name:'Home & Living',icon:'fa-house-chimney',color:'#fdba74',desc:'Accommodation, ideal home'}];
+var QB={part1:{people:[{qs:['Do you have a large family or a small family?','How often do you spend time with your family?','Who are you closest to in your family?']},{qs:['Do you enjoy meeting new people?','How do you usually make new friends?','Is it easy to make friends in your country?']},{qs:['Do you prefer spending time with friends or family?','What do you usually do with your friends?','Have you kept in touch with your childhood friends?']}],places:[{qs:['Where is your hometown?','What do you like most about your hometown?','Has your hometown changed much?']},{qs:['Do you like travelling?','What is the most interesting place you have visited?','Do you prefer travelling alone or with others?']},{qs:['Would you like to live in a city or a small town?','What are the advantages of living in a big city?','Is there a place you have always wanted to visit?']}],education:[{qs:['What are you studying?','Why did you choose that subject?','Is there anything you dislike about your studies?']},{qs:['What was your favourite subject at school?','Did your education prepare you well?','Would you like to continue studying?']},{qs:['Do you prefer classroom or online learning?','Have you learned a skill outside of school?','What subject would you like to learn more about?']}],work:[{qs:['What do you do for a living?','What do you enjoy most about your job?','Would you like to change your career?']},{qs:['Is it important to have a career plan?','What are the most popular jobs in your country?','At what age do people start working?']},{qs:['Big company or small company?','Work from home or office?','Most important skills for a job?']}],technology:[{qs:['How often do you use the internet?','What device do you use the most?','Has technology made life easier?']},{qs:['How has technology changed communication?','Do people spend too much time on phones?','What technology could you not live without?']},{qs:['Interested in new tech?','Should children have limited screen time?','How will tech change education?']}],health:[{qs:['Do you exercise regularly?','What do you do to stay healthy?','Is it easy to stay healthy in your country?']},{qs:['Do you have a healthy diet?','Do you get enough sleep?','Have you tried alternative therapies?']},{qs:['More health-conscious now?','Health benefits of sports?','Government promote healthy lifestyles?']}],environment:[{qs:['Concerned about the environment?','What do you do to help the environment?','Is climate change serious?']},{qs:['Much pollution in your city?','Is recycling important?','Is your country environmentally friendly?']},{qs:['Like spending time in nature?','What can individuals do to protect the environment?','Noticed weather changes?']}],culture:[{qs:['Traditional festivals in your country?','Favourite festival?','Is traditional culture important?']},{qs:['Enjoy museums or galleries?','Popular music in your country?','Globalisation affecting local culture?']},{qs:['How do people celebrate birthdays?','Traditional dish representing your culture?','Do young people appreciate traditional culture?']}],sports:[{qs:['Do you play sports?','Popular sports in your country?','Prefer watching or playing?']},{qs:['Sports as a child?','Sports bring people together?','Most exciting sport to watch?']},{qs:['Favourite team or athlete?','Schools encourage more sports?','What hobbies do you enjoy?']}],food:[{qs:['Favourite type of food?','Do you enjoy cooking?','Prefer eating at home or out?']},{qs:['Traditional food from your country?','Like trying different cuisines?','Taste changed over the years?']},{qs:['Fast food harmful?','Prefer sweet or savoury?','Food you dislike?']}],shopping:[{qs:['Enjoy shopping?','Online or physical stores?','What do you usually shop for?']},{qs:['People buy too much?','Influenced by advertisements?','Prefer branded products?']},{qs:['Shopping habits changed?','Enjoy window shopping?','Best shopping area in your city?']}],home:[{qs:['House or apartment?','Favourite room?','Would you like to move?']},{qs:['Dream home?','Better to rent or buy?','Convenient location?']},{qs:['Like decorating your home?','Chores you dislike?','Get along with neighbours?']}]} part2:{people:[{topic:'Describe a person who has influenced you greatly',cue:'Describe a person who has influenced you greatly',points:['Who this person is','How you know them','What they have done to influence you','How you feel about this person']},{topic:'Describe a friend you have known for a long time',cue:'Describe a friend you have known for a long time',points:['How you met','What you usually do together','Why you have remained friends','What qualities they have']}],places:[{topic:'Describe a place you would like to visit',cue:'Describe a place you would like to visit',points:['Where it is','How you learned about it','What you would do there','Why you want to visit']},{topic:'Describe your favourite room',cue:'Describe your favourite room',points:['What it looks like','What you use it for','How often you spend time there','Why it is your favourite']}],education:[{topic:'Describe a teacher who made an impact on you',cue:'Describe a teacher who made a significant impact on you',points:['Who this teacher was','What subject they taught','How they influenced you','How you feel about them now']},{topic:'Describe a course you found interesting',cue:'Describe a course you found particularly interesting',points:['What it was about','When and where you took it','What you learned','Why you found it interesting']}],work:[{topic:'Describe your ideal job',cue:'Describe your ideal job or career',points:['What it would involve','Where you would work','What skills you would need','Why it appeals to you']},{topic:'Describe a challenging task',cue:'Describe a challenging task at work or study',points:['What the task was','Why it was challenging','How you completed it','What you learned']}],technology:[{topic:'Describe a piece of technology you find useful',cue:'Describe a piece of technology you find very useful',points:['What it is','How often you use it','What you use it for','Why you find it useful']},{topic:'Describe a time when technology failed you',cue:'Describe a time when technology caused a problem',points:['When and where','What the technology was','What went wrong','How you dealt with it']}],health:[{topic:'Describe a healthy lifestyle you would like to adopt',cue:'Describe a healthy lifestyle you would like to adopt',points:['What it involves','Why it is healthy','How you could adopt it','What challenges you might face']},{topic:'Describe an activity that keeps you fit',cue:'Describe a physical activity that helps you stay fit',points:['What the activity is','How often you do it','Where you do it','How it makes you feel']}],environment:[{topic:'Describe a beautiful natural place',cue:'Describe a beautiful natural place you have visited',points:['Where it is','When you went','What it looked like','How you felt about it']},{topic:'Describe an environmental problem',cue:'Describe an environmental problem in your area',points:['What the problem is','What causes it','How it affects people','What can be done']}],culture:[{topic:'Describe a traditional celebration',cue:'Describe a traditional celebration in your country',points:['What the celebration is','When it takes place','What people do','How you feel about it']},{topic:'Describe a cultural difference',cue:'Describe a cultural difference you have experienced',points:['What the difference was','Where you experienced it','How you reacted','What you learned']}],sports:[{topic:'Describe a sporting event',cue:'Describe a sporting event you attended or watched',points:['What the event was','Where it took place','Who you went with','How you felt about it']},{topic:'Describe a hobby you enjoy',cue:'Describe a hobby you enjoy',points:['What the hobby is','How long you have done it','What you need','Why you enjoy it']}],food:[{topic:'Describe a memorable meal',cue:'Describe a memorable meal you have had',points:['What the meal was','Where and when','Who you were with','Why it was memorable']},{topic:'Describe a dish from your country',cue:'Describe a traditional dish from your country',points:['What the dish is','How it is prepared','When people eat it','Why it is popular']}],shopping:[{topic:'Describe something you bought that pleased you',cue:'Describe something you bought that you were really pleased with',points:['What it was','Where you bought it','Why you bought it','How you felt about it']},{topic:'Describe a market you have been to',cue:'Describe a market or shopping area you have visited',points:['Where it is','What they sell','What the atmosphere is like','How often you go']}],home:[{topic:'Describe your ideal home',cue:'Describe your ideal home',points:['Where it would be','What it would look like','Special features','Why ideal for you']},{topic:'Describe a time you moved',cue:'Describe a time you moved to a new place',points:['When and where','Why you moved','How you felt','What the new place was like']}]} part3:{people:[{qs:['How has the parent-child relationship changed?','Do you think family bonds are weaker today?','What role do grandparents play?']},{qs:['How do social media affect friendships?','Is it better to have many friends or a few close ones?','How does culture influence making friends?']}],places:[{qs:['What are the pros and cons of urbanisation?','How can cities be more eco-friendly?','Does tourism do more harm or good?']},{qs:['How does where you live affect quality of life?','Should governments invest more in rural areas?','How might the concept of home change?']}],education:[{qs:['How has education changed in your country?','Are exams the best way to assess students?','Should university be free?']},{qs:['How important is lifelong learning?','What skills will be most important for future jobs?','Will online education replace classrooms?']}],work:[{qs:['How is work changing in the 21st century?','Will remote work become the norm?','What are work-life balance challenges?']},{qs:['Passion or income when choosing a career?','Job satisfaction vs salary?','Impact of automation on employment?']}],technology:[{qs:['Most significant tech advances of the last decade?','Does technology make people more or less social?','How might AI change daily life?']},{qs:['Stricter regulations on tech companies?','How can we protect privacy?','Risks of over-reliance on technology?']}],health:[{qs:['Why are mental health issues increasing?','Should employers care about mental health?','How can governments promote healthy lifestyles?']},{qs:['Is your country\'s healthcare adequate?','How has the pandemic changed attitudes to health?','Should alternative medicine be mainstream?']}],environment:[{qs:['Biggest environmental challenges?','Individuals or governments: who is more responsible?','How realistic is carbon neutrality?']},{qs:['Should environmental education start young?','Economic consequences of environmental degradation?','Balancing growth and sustainability?']}],culture:[{qs:['Is globalisation destroying local cultures?','How can traditional culture be preserved?','Role of culture in national identity?']},{qs:['Should art and culture be publicly funded?','Benefits of cultural exchange?','Challenges for immigrant communities?']}],sports:[{qs:['Are professional athletes paid too much?','Impact of hosting major sporting events?','Should competitive sports be compulsory?']},{qs:['Role of sports in international relations?','Impact of commercialisation?','Should e-sports get equal recognition?']}],food:[{qs:['How has globalisation affected food culture?','Should governments promote healthy eating?','Are traditional cooking skills being lost?']},{qs:['Environmental consequences of modern food production?','Restrict food advertising to children?','How might food habits change?']}],shopping:[{qs:['How has online shopping changed behaviour?','Environmental impacts of overconsumption?','Does advertising manipulate people?']},{qs:['How might shopping habits change?','Limits on fast fashion?','Psychological effects of shopping?']}],home:[{qs:['How does housing affordability affect society?','Advantages of communal living?','How might homes change in 50 years?']},{qs:['Should governments provide housing for all?','Home design and wellbeing?','Social implications of gentrification?']}]}};
+var ADVANCED_WORDS=['consequently','nevertheless','furthermore','predominantly','significantly','undoubtedly','remarkably','essentially','particularly','increasingly','substantially','evidently','fundamentally','inherently','simultaneously','subsequently','paramount','crucial','imperative','profound','noteworthy','exemplary','unprecedented','meticulous','versatile','resilient','pertinent','ambiguous','pragmatic','endeavour','flourish','deteriorate','alleviate','cultivate','facilitate','diminish','adequate','comprehensive','beneficial','detrimental','indispensable','aesthetic','prevalent','inevitable','perceive','acquire','enhance','advocate','elaborate','articulate','illustrate','demonstrate','contribute','acknowledge','appreciate','accommodate','circumstances','perspective','opportunity','development','traditional','contemporary','urbanisation','globalisation','sustainability'];
+var IDIOMS=['by and large','in the long run','at the end of the day','a blessing in disguise','break the ice','hit the nail on the head','once in a blue moon','the bottom line','on the other hand','to a certain extent','in light of','with regard to','as a matter of fact','for the most part','first and foremost','double-edged sword','tip of the iceberg','silver lining'];
+var CONNECTORS=['firstly','secondly','thirdly','moreover','furthermore','in addition','however','nevertheless','on the other hand','in contrast','similarly','as a result','consequently','therefore','for instance','for example','in other words','that is to say','in conclusion','to sum up','overall','meanwhile','subsequently','nonetheless','otherwise','whereas','while','although','even though','despite','in spite of','having said that'];
+var FILLERS=['um','uh','uhm','ah','er','hmm'];
+var tipsData=[{criterion:'Fluency & Coherence',icon:'fa-water',color:'var(--accent)',tips:[{title:'Natural pace',desc:'Aim for 120-150 words per minute.'},{title:'Discourse markers',desc:'"Well, to be honest..." makes speech flow naturally.'},{title:'Manage silence',desc:'Replace "um/uh" with "Let me think about that...".'},{title:'Develop answers',desc:'Answer, elaborate, then give an example.'},{title:'Link ideas',desc:'"As I mentioned before..." shows cohesion.'}]},{criterion:'Lexical Resource',icon:'fa-book-open',color:'var(--success)',tips:[{title:'Show range',desc:'Using "reluctant" once correctly beats forcing complex words.'},{title:'Collocations',desc:'"Make a decision" not "do a decision." "Heavy rain" not "strong rain."'},{title:'Paraphrase',desc:'Rephrase the question instead of repeating it.'},{title:'Topic vocabulary',desc:'Environment? Use "sustainability," "carbon footprint."'},{title:'Idiomatic language',desc:'"A blessing in disguise" — but only when natural.'}]},{criterion:'Grammatical Range & Accuracy',icon:'fa-spell-check',color:'#818cf8',tips:[{title:'Mix structures',desc:'Alternate simple and complex sentences naturally.'},{title:'Conditionals',desc:'"If I had more time, I would travel more." (Second conditional)'},{title:'Passive voice',desc:'"The decision was made by the committee." shows range.'},{title:'Perfect tenses',desc:'"I have lived here" vs "I lived there" — know the difference.'}]},{criterion:'Pronunciation',icon:'fa-volume-high',color:'var(--warn)',tips:[{title:'Be understood',desc:'Any clear accent can score Band 8+.'},{title:'Sentence stress',desc:'"I REALLY enjoyed the TRIP." Flat intonation loses marks.'},{title:'Link words',desc:'"I want to" becoming "I wanna" is natural connected speech.'},{title:'Record yourself',desc:'Notice patterns you cannot hear while speaking.'}]}];
+
+/* ========== STATE ========== */
+var state={currentView:'dashboard',practiceState:'select',selectedPart:null,selectedCatId:null,currentQuestion:null,currentTopic:null,transcript:'',finalTranscript:'',interimTranscript:'',isRecording:false,recordStartTime:null,recordDuration:0,prepTimer:0,speakTimer:0,timerInterval:null,recognition:null,lastAnalysis:null,topicFilter:'all',adminPin:'1234',adminUnlocked:false,adminSubView:'overview',adminSelectedStudent:null,micTestStream:null,micTestAnalyser:null,micTestAnimFrame:null};
+
+/* ========== HELPERS ========== */
+function $(s){return document.querySelector(s);}
+function $$(s){return document.querySelectorAll(s);}
+function showToast(m,t){var e=$('#toast');e.textContent=m;e.style.borderLeft=t==='success'?'3px solid var(--success)':t==='error'?'3px solid var(--danger)':'3px solid var(--accent)';e.classList.add('show');setTimeout(function(){e.classList.remove('show');},3000);}
+function formatDuration(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
+function getBandColor(b){if(b>=7)return'var(--success)';if(b>=5.5)return'var(--warn)';return'var(--danger)';}
+function getBandLabel(b){if(b>=8)return'Expert';if(b>=7)return'Good';if(b>=6)return'Competent';if(b>=5)return'Modest';return'Limited';}
+function randomFrom(a){return a[Math.floor(Math.random()*a.length)];}
+function isSecureContext(){if(window.isSecureContext)return true;var p=location.protocol;if(p==='https:'||(p==='http:'&&(location.hostname==='localhost'||location.hostname==='127.0.0.1')))return true;return false;}
+function getHistory(){return cachedSessions;}
+
+/* ========== NAVIGATION ========== */
+function enterAsStudent(){$('#landing-page').style.display='none';$('#main-area').style.display='block';$('#sidebar').style.display='flex';$('#register-modal').classList.add('show');setTimeout(function(){$('#reg-name').focus();},100);}
+function closeRegisterModal(){$('#register-modal').classList.remove('show');}
+function showPinModal(){$('#pin-modal').classList.add('show');$('#pin-input').value='';setTimeout(function(){$('#pin-input').focus();},100);}
+function closePinModal(){$('#pin-modal').classList.remove('show');}
+function verifyPin(){if($('#pin-input').value===state.adminPin){state.adminUnlocked=true;closePinModal();$('#landing-page').style.display='none';$('#main-area').style.display='block';$('#sidebar').style.display='flex';navigate('admin');}else{showToast('Incorrect PIN','error');$('#pin-input').value='';$('#pin-input').focus();}}
+
+async function submitRegistration(){
+  var name=$('#reg-name').value.trim(),email=$('#reg-email').value.trim().toLowerCase();
+  if(!name){showToast('Please enter your name','error');$('#reg-name').focus();return;}
+  if(!email||email.indexOf('@')===-1||email.indexOf('.')===-1){showToast('Please enter a valid email','error');$('#reg-email').focus();return;}
+  var btn=$('#reg-submit-btn');btn.innerHTML='<div class="loading-spinner" style="width:18px;height:18px;border-width:2px"></div> Connecting...';btn.disabled=true;
+  try{
+    var result=await findOrCreateStudent(name,email);
+    localStorage.setItem('sb_email',email);
+    closeRegisterModal();updateStudentDisplay();
+    showToast(result.existing?'Welcome back, '+name+'!':'Welcome, '+name+'!','success');
+    navigate('mictest');
+  }catch(e){showToast('Connection error. Check your internet.','error');}
+  btn.innerHTML='<i class="fas fa-arrow-right"></i> Get Started';btn.disabled=false;
+}
+
+function logoutStudent(){stopMicTest();currentStudent=null;cachedSessions=[];state.adminUnlocked=false;localStorage.removeItem('sb_email');$('#reg-name').value='';$('#reg-email').value='';$('#landing-page').style.display='flex';$('#main-area').style.display='none';$('#sidebar').style.display='none';}
+function updateStudentDisplay(){var s=currentStudent;if(s){$('#student-name-display').textContent=s.name;$('#student-email-display').textContent=s.email;$('#student-info').style.display='block';}else{$('#student-info').style.display='none';}}
+
+async function navigate(view){
+  if(view==='admin'&&!state.adminUnlocked){showPinModal();return;}
+  if(view!=='practice'){state.practiceState='select';if(state.isRecording)stopRecording();}
+  state.currentView=view;
+  $$('.view').forEach(function(v){v.classList.remove('active');});$('#view-'+view).classList.add('active');
+  $$('.nav-item').forEach(function(n){var nv=n.getAttribute('data-view');if(nv===view)n.classList.add('active');else n.classList.remove('active');});
+  if(view==='dashboard')await renderDashboard();else if(view==='mictest')renderMicTest();else if(view==='practice')renderPractice();else if(view==='history')await renderHistory();else if(view==='tips')renderTips();else if(view==='admin')await renderAdmin();
+  $('#sidebar').classList.remove('open');
+}
+function toggleSidebar(){$('#sidebar').classList.toggle('open');}
+
+/* ========== MIC TEST ========== */
+function stopMicTest(){if(state.micTestAnimFrame){cancelAnimationFrame(state.micTestAnimFrame);state.micTestAnimFrame=null;}if(state.micTestStream){state.micTestStream.getTracks().forEach(function(t){t.stop();});state.micTestStream=null;}}
+function renderMicTest(){var el=$('#view-mictest');if(!isSecureContext()){el.innerHTML='<div class="fade-in" style="max-width:640px;margin:0 auto"><button class="btn btn-ghost mb-6" onclick="navigate(\'dashboard\')"><i class="fas fa-arrow-left"></i> Dashboard</button><h1 class="font-display text-3xl font-bold mb-4">Test Your Microphone</h1><div class="origin-banner"><h3 class="font-display font-bold mb-3" style="color:var(--danger)"><i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Microphone Requires HTTPS</h3><p style="font-size:14px;margin-bottom:12px">Open this page via <strong>https://</strong> or <strong>http://localhost</strong>.</p><p style="font-size:13px;color:var(--muted)">If you opened the HTML file directly (double-click), run a local server instead:<br><code style="color:var(--success)">python -m http.server 8000</code> then open <a href="http://localhost:8000" style="color:var(--accent)">http://localhost:8000</a></p></div></div>';return;}
+  el.innerHTML='<div class="fade-in" style="max-width:600px;margin:0 auto;text-align:center;padding-top:20px"><button class="btn btn-ghost mb-6" onclick="navigate(\'dashboard\')"><i class="fas fa-arrow-left"></i> Dashboard</button><h1 class="font-display text-3xl font-bold mb-2">Test Your Microphone</h1><p style="color:var(--muted);font-size:15px;margin-bottom:32px">Make sure your mic works before starting practice</p><div id="mic-test-area"></div></div>';renderMicTestArea();}
+function renderMicTestArea(){var a=$('#mic-test-area');if(!a)return;a.innerHTML='<div style="margin-bottom:32px"><div class="mic-level-ring" id="mic-ring" style="margin:0 auto 20px"><i class="fas fa-microphone" style="font-size:36px;color:var(--muted)" id="mic-ring-icon"></i></div><div id="mic-waveform" style="display:flex;align-items:center;justify-content:center;gap:3px;height:60px;margin-bottom:16px"></div><p id="mic-status" style="color:var(--muted);font-size:14px;margin-bottom:24px">Click below to test your microphone</p></div><div id="mic-test-controls"><button class="btn btn-primary text-base px-8 py-3" onclick="startMicTest()" id="mic-test-btn"><i class="fas fa-microphone"></i> Start Mic Test</button></div><div id="mic-playback-area" style="display:none;margin-top:24px"><p style="color:var(--muted);font-size:13px;margin-bottom:12px">Play back your recording:</p><audio id="mic-playback" controls style="width:100%;max-width:400px;margin:0 auto"></audio><div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button class="btn btn-primary" onclick="micTestPassed()"><i class="fas fa-check"></i> Mic Works — Continue</button><button class="btn btn-secondary" onclick="startMicTest()"><i class="fas fa-redo"></i> Test Again</button></div></div><div id="mic-denied-help" style="display:none;margin-top:24px;text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px"><h3 class="font-display font-semibold mb-3" style="color:var(--danger)"><i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Microphone Blocked</h3><div class="step-row"><div class="step-num">1</div><div style="font-size:13px">Look at the <strong>address bar</strong></div></div><div class="step-row"><div class="step-num">2</div><div style="font-size:13px">Click the <strong>lock icon</strong> on the left</div></div><div class="step-row"><div class="step-num">3</div><div style="font-size:13px">Find <strong>"Microphone"</strong> → change to <span style="color:var(--success)">Allow</span></div></div><div class="step-row" style="margin-bottom:0"><div class="step-num">4</div><div style="font-size:13px"><strong>Refresh</strong> the page</div></div><button class="btn btn-secondary mt-4" onclick="location.reload()" style="width:100%;justify-content:center"><i class="fas fa-rotate-right"></i> Refresh</button></div>';}
+function startMicTest(){stopMicTest();var s=$('#mic-status'),b=$('#mic-test-btn'),r=$('#mic-ring'),i=$('#mic-ring-icon'),w=$('#mic-waveform'),p=$('#mic-playback-area'),d=$('#mic-denied-help');if(b)b.style.display='none';if(p)p.style.display='none';if(d)d.style.display='none';if(s){s.textContent='Requesting microphone...';s.style.color='var(--warn)';}if(w){w.innerHTML='';for(var x=0;x<40;x++){var bar=document.createElement('div');bar.className='waveform-bar';bar.style.height='4px';w.appendChild(bar);}}navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){state.micTestStream=stream;var ctx=new(window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);var an=ctx.createAnalyser();an.fftSize=256;src.connect(an);state.micTestAnalyser=an;if(s){s.textContent='Speak into your microphone... Recording 5s';s.style.color='var(--success)';}if(r)r.classList.add('active');if(i)i.style.color='var(--success)';var bars=w?w.querySelectorAll('.waveform-bar'):[];var da=new Uint8Array(an.frequencyBinCount);function draw(){an.getByteFrequencyData(da);for(var j=0;j<bars.length;j++){var idx=Math.floor(j*da.length/bars.length);bars[j].style.height=Math.max(4,(da[idx]/255)*56)+'px';bars[j].style.background=da[idx]>50?'var(--accent)':'var(--border)';}state.micTestAnimFrame=requestAnimationFrame(draw);}draw();var mr=new MediaRecorder(stream);var ch=[];mr.ondataavailable=function(e){if(e.data.size>0)ch.push(e.data);};mr.onstop=function(){var blob=new Blob(ch,{type:'audio/webm'});var url=URL.createObjectURL(blob);var au=$('#mic-playback');if(au)au.src=url;if(p)p.style.display='block';if(s)s.textContent='Recording complete — play it back';stopMicTest();if(w){var b2=w.querySelectorAll('.waveform-bar');for(var k=0;k<b2.length;k++)b2[k].style.height='4px';}if(r)r.classList.remove('active');};mr.start();setTimeout(function(){if(mr.state==='recording')mr.stop();},5000);}).catch(function(err){if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){if(s){s.textContent='Microphone access was denied';s.style.color='var(--danger)';}if(i)i.style.color='var(--danger)';if(d)d.style.display='block';}else{if(s){s.textContent='Error: '+err.message;s.style.color='var(--danger)';}}if(b)b.style.display='inline-flex';});}
+function micTestPassed(){showToast('Microphone is working!','success');navigate('practice');}
+
+/* ========== SPEECH RECOGNITION ========== */
+function initRecognition(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){showToast('Speech recognition not supported. Use Chrome.','error');return false;}try{state.recognition=new SR();state.recognition.continuous=true;state.recognition.interimResults=true;state.recognition.lang='en-US';state.recognition.onresult=function(e){var im='',fi='';for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)fi+=e.results[i][0].transcript+' ';else im+=e.results[i][0].transcript;}if(fi)state.transcript+=fi;state.interimTranscript=im;renderTranscript();};state.recognition.onerror=function(e){};state.recognition.onend=function(){if(state.isRecording){try{state.recognition.start();}catch(ex){}}};return true;}catch(e){return false;}}
+function startRecording(){if(!state.recognition&&!initRecognition())return;state.transcript='';state.interimTranscript='';state.isRecording=true;state.recordStartTime=Date.now();try{state.recognition.start();}catch(e){}}
+function stopRecording(){state.isRecording=false;state.recordDuration=(Date.now()-state.recordStartTime)/1000;try{state.recognition.stop();}catch(e){}clearInterval(state.timerInterval);state.finalTranscript=state.transcript.trim();}
+function highlightTranscript(t){if(!t)return'';return t.split(/\s+/).map(function(w){var c=w.toLowerCase().replace(/[^a-z'-]/g,'');if(FILLERS.indexOf(c)!==-1)return'<span class="filler">'+w+'</span>';if(ADVANCED_WORDS.indexOf(c)!==-1)return'<span class="advanced">'+w+'</span>';return w;}).join(' ');}
+function renderTranscript(){var el=$('#live-transcript');if(!el)return;var h=highlightTranscript(state.transcript);if(state.interimTranscript)h+='<span class="interim">'+state.interimTranscript+'</span>';if(!h.trim())h='<span style="color:var(--muted);font-style:italic">Listening...</span>';el.innerHTML=h;}
+
+/* ========== ANALYSIS ========== */
+function analyzeResponse(text,dur,part){if(!text||text.trim().length<5)return{overall:0,fc:0,lr:0,gra:0,p:0,wpm:0,wordCount:0,uniqueWords:0,fillerCount:0,fillerRatio:0,connectorsUsed:[],advancedUsed:[],idiomsUsed:[],strengths:[],weaknesses:[],details:{}};var w=text.toLowerCase().replace(/[^a-z\s'-]/g,' ').split(/\s+/).filter(function(x){return x.length>0;});var wc=w.length;var wpm=dur>0?(wc/dur)*60:0;var us={};for(var i=0;i<w.length;i++)us[w[i]]=true;var uw=Object.keys(us).length;var ttr=wc>0?uw/wc:0;var fc=0;for(var j=0;j<w.length;j++){if(FILLERS.indexOf(w[j])!==-1)fc++;}var fr=wc>0?(fc/wc)*100:0;var cu=[];for(var c=0;c<CONNECTORS.length;c++){if(text.toLowerCase().indexOf(CONNECTORS[c])!==-1)cu.push(CONNECTORS[c]);}var au=[];for(var a=0;a<ADVANCED_WORDS.length;a++){if(us[ADVANCED_WORDS[a]])au.push(ADVANCED_WORDS[a]);}var iu=[];for(var d=0;d<IDIOMS.length;d++){if(text.toLowerCase().indexOf(IDIOMS[d])!==-1)iu.push(IDIOMS[d]);}var sn=text.split(/[.!?]+/).filter(function(s){return s.trim().length>3;});var sl=sn.map(function(s){return s.trim().split(/\s+/).length;});var asl=sl.length>0?sl.reduce(function(a,b){return a+b;},0)/sl.length:0;var slv=sl.length>1?sl.reduce(function(a,l){return a+Math.pow(l-asl,2);},0)/sl.length:0;var lt=text.toLowerCase();var hp=/\b(is|are|was|were|been|being)\s+\w+ed\b/.test(lt);var hc=/\bif\b.*\b(would|could|might|will|can)\b/.test(lt);var hpt=/\b(have|has|had)\s+\w+ed\b/.test(lt);var hr=/\b(who|which|that|where|when|whose)\s+\w+\b/.test(lt);var hs=/\b(although|because|since|while|whereas|even though|despite|in spite of)\b/.test(lt);var cc=[hp,hc,hpt,hr,hs].filter(Boolean).length;var f=5.0;if(wpm>=100&&wpm<=160)f+=0.8;else if(wpm>=80&&wpm<100)f+=0.3;else if(wpm>160&&wpm<=180)f+=0.3;else if(wpm<60)f-=1;else if(wpm>180)f-=0.5;if(fr<1.5)f+=1;else if(fr<3)f+=0.5;else if(fr>8)f-=1.5;else if(fr>5)f-=0.8;if(cu.length>=4)f+=0.8;else if(cu.length>=2)f+=0.4;else if(cu.length===0)f-=0.5;if(part===2&&wc<80)f-=0.5;if(part===1&&wc>50)f-=0.3;f=Math.max(1,Math.min(9,f));var l=5.0;var tt=wc<60?0.65:(wc<120?0.55:0.45);if(ttr>tt+0.1)l+=1;else if(ttr>tt)l+=0.5;else if(ttr<tt-0.15)l-=1;else if(ttr<tt-0.05)l-=0.5;if(au.length>=4)l+=1;else if(au.length>=2)l+=0.5;if(iu.length>=2)l+=0.5;else if(iu.length>=1)l+=0.3;l=Math.max(1,Math.min(9,l));var g=5.0;if(cc>=4)g+=1.2;else if(cc>=3)g+=0.8;else if(cc>=2)g+=0.4;else if(cc===0)g-=0.8;if(slv>4)g+=0.5;else if(slv<1&&sl.length>2)g-=0.3;if(asl>8&&asl<20)g+=0.3;else if(asl<6)g-=0.5;g=Math.max(1,Math.min(9,g));var p=5.5;if(wpm>=100&&wpm<=150)p+=0.5;if(fr<2)p-=0.5;if(cu.length>=4)p+=0.5;if(asl>7)p+=0.3;if(fr>7)p-=0.5;if(wpm<70)p-=0.5;p=Math.max(1,Math.min(9,p));function rh(v){return Math.round(v*2)/2;}f=rh(f);l=rh(l);g=rh(g);p=rh(p);var ov=rh((f+l+g+p)/4);var st=[],wk=[];if(wpm>=100&&wpm<=155)st.push('Good pace at '+Math.round(wpm)+' wpm');else if(wpm<80)wk.push('Slow pace ('+Math.round(wpm)+' wpm)');else if(wpm>170)wk.push('Too fast ('+Math.round(wpm)+' wpm)');if(fr<2)st.push('Minimal filler words');else if(fr>5)wk.push('High filler usage ('+fr.toFixed(1)+'%)');if(cu.length>=3)st.push('Good connectors: '+cu.slice(0,3).join(', '));else wk.push('Add more linking words');if(ttr>tt)st.push('Good vocabulary diversity ('+(ttr*100).toFixed(0)+'%)');else wk.push('Vocabulary feels repetitive');if(au.length>=3)st.push('Advanced vocab: '+au.slice(0,3).join(', '));else wk.push('Incorporate more advanced vocabulary');if(iu.length>=1)st.push('Idiom'+(iu.length>1?'s':'')+': '+iu.join(', '));else wk.push('Try including an idiomatic expression');if(cc>=3)st.push('Good grammatical range');else wk.push('Use more complex structures');if(hc)st.push('Used conditionals');if(hp)st.push('Used passive voice');if(part===2&&wc<100)wk.push('Part 2 short ('+wc+' words). Aim for 100+');if(part===2&&wc>=120)st.push('Good Part 2 length ('+wc+' words)');return{overall:ov,fc:f,lr:l,gra:g,p:p,wpm:Math.round(wpm),wordCount:wc,uniqueWords:uw,fillerCount:fc,fillerRatio:fr,connectorsUsed:cu,advancedUsed:au,idiomsUsed:iu,strengths:st,weaknesses:wk,details:{typeTokenRatio:(ttr*100).toFixed(1),avgSentenceLen:asl.toFixed(1),sentenceCount:sn.length,complexCount:cc}};}
+
+/* ========== CONFETTI ========== */
+function fireConfetti(){var c=$('#confetti'),ctx=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;var ps=[],cols=['#FF6B35','#34D399','#FBBF24','#818cf8','#f472b6','#22d3ee'];for(var i=0;i<100;i++)ps.push({x:c.width/2+(Math.random()-.5)*200,y:c.height/2,vx:(Math.random()-.5)*12,vy:Math.random()*-14-4,s:Math.random()*7+3,col:cols[i%6],r:Math.random()*360,rs:(Math.random()-.5)*10,l:.8});var f=0;function an(){ctx.clearRect(0,0,c.width,c.height);var alive=false;for(var j=0;j<ps.length;j++){var p=ps[j];if(p.l<=0)continue;alive=true;p.x+=p.vx;p.vy+=0.35;p.y+=p.vy;p.r+=p.rs;p.l-=0.01;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r*Math.PI/180);ctx.globalAlpha=Math.max(0,p.l);ctx.fillStyle=p.col;ctx.fillRect(-p.s/2,-p.s/2,p.s*0.6,p.s*0.6);ctx.restore();}f++;if(alive&&f<200)requestAnimationFrame(an);else ctx.clearRect(0,0,c.width,c.height);}an();}
+
+/* ========== RENDER: DASHBOARD ========== */
+async function renderDashboard(){
+  if(!currentStudent){$('#view-dashboard').innerHTML='<div class="fade-in" style="text-align:center;padding:80px 20px"><p style="color:var(--muted)">Please log in first.</p></div>';return;}
+  await refreshSessions();
+  var h=getHistory(),tp=h.length,tt=h.reduce(function(a,s){return a+(s.duration||0);},0);
+  var ab=tp>0?h.reduce(function(a,s){return a+(s.analysis?s.analysis.overall:0);},0)/tp:0;
+  var bb=tp>0?Math.max.apply(null,h.map(function(s){return s.analysis?s.analysis.overall:0;})):0;
+  var recent=h.slice(-5).reverse();var ca={fc:0,lr:0,gra:0,p:0};
+  if(tp>0){h.forEach(function(s){if(s.analysis){ca.fc+=s.analysis.fc;ca.lr+=s.analysis.lr;ca.gra+=s.analysis.gra;ca.p+=s.analysis.p;}});ca.fc/=tp;ca.lr/=tp;ca.gra/=tp;ca.p/=tp;}
+  var wn={fc:'Fluency & Coherence',lr:'Lexical Resource',gra:'Grammatical Range',p:'Pronunciation'};
+  var weakE=tp>0?Object.entries(ca).sort(function(a,b){return a[1]-b[1];})[0]:null;
+  var ts={};h.forEach(function(s){if(s.category)ts[s.category]=true;});var tc=Object.keys(ts).length;var sk=currentStudent.streak||0;
+  var html='<div class="fade-in"><div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8"><div><p style="color:var(--muted);font-size:14px;margin-bottom:4px">Welcome back</p><h1 class="font-display text-3xl md:text-4xl font-bold">Your Dashboard</h1></div><div class="flex items-center gap-3 flex-wrap"><div class="badge badge-accent"><i class="fas fa-fire" style="color:var(--accent);margin-right:4px"></i> '+sk+' day streak</div><button class="btn btn-primary" onclick="navigate(\'practice\')"><i class="fas fa-microphone"></i> Start Practice</button></div></div>';
+  html+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"><div class="card stat-card"><div class="stat-val" style="color:var(--accent)">'+tp+'</div><div class="stat-label">Practices</div></div><div class="card stat-card"><div class="stat-val">'+formatDuration(tt)+'</div><div class="stat-label">Time Spoken</div></div><div class="card stat-card"><div class="stat-val" style="color:'+getBandColor(ab)+'">'+(ab>0?ab.toFixed(1):'&mdash;')+'</div><div class="stat-label">Avg Band</div></div><div class="card stat-card"><div class="stat-val" style="color:'+getBandColor(bb)+'">'+(bb>0?bb.toFixed(1):'&mdash;')+'</div><div class="stat-label">Best Band</div></div></div>';
+  html+='<div class="grid lg:grid-cols-3 gap-6 mb-8"><div class="card lg:col-span-2"><h3 class="font-display font-semibold text-base mb-5">Criteria Breakdown</h3>';
+  ['fc','lr','gra','p'].forEach(function(k){var pct=tp>0?(ca[k]/9*100):0;html+='<div class="mb-4" style="'+(k==='p'?'margin-bottom:0':'')+'"><div class="flex justify-between items-center mb-2"><span style="font-size:13px;color:var(--muted)">'+wn[k]+'</span><span class="font-display font-semibold text-sm" style="color:'+getBandColor(ca[k])+'">'+(tp>0?ca[k].toFixed(1):'&mdash;')+'</span></div><div class="criteria-bar"><div class="criteria-bar-fill" data-width="'+pct+'%" style="width:0%;background:'+getBandColor(ca[k])+'"></div></div></div>';});
+  html+='</div><div class="card card-glow" style="border-color:rgba(255,107,53,.2)"><h3 class="font-display font-semibold text-base mb-3"><i class="fas fa-bullseye" style="color:var(--accent);margin-right:6px"></i>Focus Area</h3>';
+  if(tp>0&&weakE){html+='<div style="padding:14px;border-radius:10px;background:var(--accent-glow);border:1px solid rgba(255,107,53,.15)"><div class="font-display font-bold" style="color:var(--accent);font-size:15px">'+wn[weakE[0]]+'</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Current: '+weakE[1].toFixed(1)+'</div></div><button class="btn btn-primary mt-4" style="width:100%;justify-content:center" onclick="navigate(\'tips\')"><i class="fas fa-lightbulb"></i> View Tips</button>';}else{html+='<p style="font-size:14px;color:var(--muted);margin-bottom:16px">Complete your first practice.</p><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="navigate(\'practice\')"><i class="fas fa-microphone"></i> Start Now</button>';}html+='</div></div>';
+  if(tp>0){html+='<div class="card mb-8"><h3 class="font-display font-semibold text-base mb-4">Topics ('+tc+'/'+topicCategories.length+')</h3><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">';topicCategories.forEach(function(cat){var pr=h.some(function(s){return s.category===cat.id;});html+='<div style="padding:10px;border-radius:10px;text-align:center;background:'+(pr?'var(--accent-glow)':'var(--bg)')+';border:1px solid '+(pr?'rgba(255,107,53,.15)':'var(--border)')+'"><i class="fas '+cat.icon+'" style="color:'+(pr?'var(--accent)':'var(--muted)')+';font-size:16px;margin-bottom:4px;display:block"></i><div style="font-size:11px;color:'+(pr?'var(--text)':'var(--muted)')+'">'+cat.name.split('&')[0].trim()+'</div></div>';});html+='</div></div>';}
+  html+='<div class="card"><div class="flex justify-between items-center mb-4"><h3 class="font-display font-semibold text-base">Recent Practice</h3>';if(tp>0)html+='<button class="btn btn-ghost btn-sm" onclick="navigate(\'history\')">View All</button>';html+='</div>';
+  if(recent.length>0){recent.forEach(function(s){html+='<div class="flex items-center justify-between py-3" style="border-bottom:1px solid var(--border)"><div class="flex items-center gap-3"><div style="width:40px;height:40px;border-radius:10px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center"><span class="font-display font-bold text-sm" style="color:var(--accent)">P'+s.part+'</span></div><div><div style="font-size:14px;font-weight:600">'+s.topic+'</div><div style="font-size:12px;color:var(--muted)">'+new Date(s.date).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</div></div></div><div class="flex items-center gap-3"><span style="font-size:12px;color:var(--muted)">'+s.wordCount+'w</span><div class="font-display font-bold text-xl" style="color:'+getBandColor(s.analysis.overall)+'">'+s.analysis.overall.toFixed(1)+'</div></div></div>';});}else{html+='<div class="text-center py-12" style="color:var(--muted)"><i class="fas fa-clock-rotate-left text-3xl mb-3" style="color:var(--border);display:block"></i><p>No practice sessions yet.</p></div>';}
+  html+='</div></div>';$('#view-dashboard').innerHTML=html;setTimeout(function(){$$('#view-dashboard .criteria-bar-fill').forEach(function(el){el.style.width=el.getAttribute('data-width');});},50);
+}
+
+/* ========== RENDER: PRACTICE (same logic, shorter var names for space) ========== */
+function renderPractice(){var el=$('#view-practice');if(state.practiceState==='select')renderPSelect(el);else if(state.practiceState==='topics')renderPTopics(el);else if(state.practiceState==='question')renderPQuestion(el);else if(state.practiceState==='preparing')renderPPreparing(el);else if(state.practiceState==='recording')renderPRecording(el);else if(state.practiceState==='analyzing')renderPAnalyzing(el);else if(state.practiceState==='results')renderPResults(el);}
+function renderPSelect(el){var ps=[{n:1,t:'Part 1: Introduction',d:'Short questions about familiar topics.',i:'fa-comments'},{n:2,t:'Part 2: Long Turn',d:'Speak for 2 minutes with 1 minute prep.',i:'fa-clock'},{n:3,t:'Part 3: Discussion',d:'Abstract questions with reasons and examples.',i:'fa-brain'}];var h='<div class="fade-in"><button class="btn btn-ghost mb-6" onclick="navigate(\'dashboard\')"><i class="fas fa-arrow-left"></i> Dashboard</button><h1 class="font-display text-3xl font-bold mb-2">Choose Practice Type</h1><p style="color:var(--muted);font-size:15px;margin-bottom:32px">Select which IELTS Speaking part</p><div class="grid md:grid-cols-3 gap-5">';ps.forEach(function(p){h+='<div class="part-card" onclick="selectPart('+p.n+')"><div style="width:48px;height:48px;border-radius:12px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;margin-bottom:16px"><i class="fas '+p.i+'" style="color:var(--accent);font-size:18px"></i></div><div class="part-num">'+p.n+'</div><h3 class="font-display font-semibold text-lg mt-1 mb-2">'+p.t+'</h3><p style="font-size:13px;color:var(--muted);line-height:1.6">'+p.d+'</p></div>';});h+='</div></div>';el.innerHTML=h;}
+function selectPart(p){state.selectedPart=p;state.practiceState='topics';state.topicFilter='all';renderPractice();}
+function renderPTopics(el){var bank=QB['part'+state.selectedPart],f=state.topicFilter,filtered=f==='all'?topicCategories:topicCategories.filter(function(c){return c.id===f;}),hist=getHistory();var h='<div class="fade-in"><button class="btn btn-ghost mb-6" onclick="state.practiceState=\'select\';renderPractice()"><i class="fas fa-arrow-left"></i> Back</button><div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"><span class="badge badge-accent">Part '+state.selectedPart+'</span><button class="btn btn-secondary btn-sm" onclick="selectRandomTopic()"><i class="fas fa-shuffle"></i> Surprise Me</button></div><div class="flex gap-2 mb-6 overflow-x-auto pb-2"><button class="cat-tab '+(f==='all'?'active':'')+'" onclick="state.topicFilter=\'all\';renderPractice()">All</button>';topicCategories.forEach(function(c){h+='<button class="cat-tab '+(f===c.id?'active':'')+'" onclick="state.topicFilter=\''+c.id+'\';renderPractice()"><i class="fas '+c.icon+'" style="margin-right:4px;font-size:11px;color:'+c.color+'"></i>'+c.name.split('&')[0].trim()+'</button>';});h+='</div><div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">';filtered.forEach(function(cat){var cn=bank[cat.id]?bank[cat.id].length:0,pr=hist.filter(function(s){return s.category===cat.id&&s.part===state.selectedPart;}).length,best=0;hist.forEach(function(s){if(s.category===cat.id&&s.part===state.selectedPart&&s.analysis&&s.analysis.overall>best)best=s.analysis.overall;});h+='<div class="topic-card" onclick="selectTopic(\''+cat.id+'\')"><div class="flex items-start gap-3 mb-3"><div class="topic-icon" style="background:'+cat.color+'18;color:'+cat.color+'"><i class="fas '+cat.icon+'"></i></div><div class="flex-1 min-w-0"><div class="font-display font-semibold text-sm">'+cat.name+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'+cn+' question'+(cn!==1?'s':'')+'</div></div>'+(pr>0?'<span class="badge badge-success" style="font-size:10px;padding:2px 6px">'+pr+'x</span>':'')+'</div><p style="font-size:12px;color:var(--muted)">'+cat.desc+'</p>'+(best>0?'<div style="margin-top:8px;font-size:11px;color:var(--muted)">Best: <span style="color:'+getBandColor(best)+';font-weight:600">'+best.toFixed(1)+'</span></div>':'')+'</div>';});h+='</div></div>';el.innerHTML=h;}
+function selectTopic(id){state.selectedCatId=id;var p=state.selectedPart,bank=QB['part'+p],cd=bank[id];if(!cd||!cd.length)return;var ci=topicCategories.find(function(c){return c.id===id;}),pk=randomFrom(cd);if(p===1){state.currentTopic=ci.name.split('&')[0].trim();state.currentQuestion=randomFrom(pk.qs);}else if(p===2){state.currentTopic=pk.topic;state.currentQuestion={cue:pk.cue,points:pk.points};}else{state.currentTopic=ci.name.split('&')[0].trim();state.currentQuestion=randomFrom(pk.qs);}state.practiceState='question';renderPractice();}
+function selectRandomTopic(){var bank=QB['part'+state.selectedPart],av=topicCategories.filter(function(c){return bank[c.id]&&bank[c.id].length>0;});if(av.length)selectTopic(randomFrom(av).id);}
+function renderPQuestion(el){var p=state.selectedPart,q=state.currentQuestion,ci=topicCategories.find(function(c){return c.id===state.selectedCatId;}),h='<div class="fade-in"><button class="btn btn-ghost mb-4" onclick="state.practiceState=\'topics\';renderPractice()"><i class="fas fa-arrow-left"></i> Back</button><div class="flex flex-wrap items-center gap-3 mb-6"><span class="badge badge-accent">Part '+p+'</span>';if(ci)h+='<span style="color:var(--muted);font-size:14px"><i class="fas '+ci.icon+'" style="color:'+ci.color+';margin-right:4px"></i>'+ci.name+'</span>';h+='</div><div class="card card-glow" style="max-width:680px">';if(p===2){h+='<h2 class="font-display text-xl font-bold mb-4">'+q.cue+'</h2><p style="font-size:13px;color:var(--muted);margin-bottom:12px">You should say:</p><ul style="list-style:none;padding:0">';q.points.forEach(function(pt,i){h+='<li class="flex gap-3 mb-2" style="font-size:14px"><span style="color:var(--accent);font-weight:600;min-width:20px">'+(i+1)+'.</span><span>'+pt+'</span></li>';});h+='</ul>';}else h+='<h2 class="font-display text-xl font-bold">'+q+'</h2>';h+='</div>';if(p===2)h+='<p style="color:var(--muted);font-size:14px;margin:16px 0">1 min prep, then 2 min to speak.</p><div class="flex flex-wrap gap-3"><button class="btn btn-primary text-base px-8 py-3" onclick="startPreparing()"><i class="fas fa-play"></i> Begin</button><button class="btn btn-secondary" onclick="selectTopic(\''+state.selectedCatId+'\')"><i class="fas fa-shuffle"></i> Different</button></div>';else h+='<p style="color:var(--muted);font-size:14px;margin:16px 0">Click start, speak, then click stop.</p><div class="flex flex-wrap gap-3"><button class="btn btn-primary text-base px-8 py-3" onclick="startRecordingPhase()"><i class="fas fa-microphone"></i> Start Speaking</button><button class="btn btn-secondary" onclick="selectTopic(\''+state.selectedCatId+'\')"><i class="fas fa-shuffle"></i> Different</button></div>';h+='</div>';el.innerHTML=h;}
+function startPreparing(){state.practiceState='preparing';state.prepTimer=60;renderPractice();state.timerInterval=setInterval(function(){state.prepTimer--;var te=$('#prep-timer');if(te)te.textContent=state.prepTimer;var be=$('#prep-bar');if(be)be.style.width=((60-state.prepTimer)/60*100)+'%';if(state.prepTimer<=0){clearInterval(state.timerInterval);startRecordingPhase();}},1000);}
+function renderPPreparing(el){el.innerHTML='<div class="fade-in" style="text-align:center;padding:60px 20px;max-width:500px;margin:0 auto"><div class="badge badge-warn mb-4"><i class="fas fa-clock" style="margin-right:4px"></i> Preparation</div><h2 class="font-display text-2xl font-bold mb-2" style="color:var(--warn)">Get Ready</h2><div class="timer-display mb-4" id="prep-timer" style="color:var(--warn)">'+state.prepTimer+'</div><div style="height:4px;border-radius:2px;background:var(--border);max-width:300px;margin:0 auto"><div id="prep-bar" style="height:100%;border-radius:2px;background:var(--warn);width:0%;transition:width 1s linear"></div></div><button class="btn btn-primary mt-8" onclick="clearInterval(state.timerInterval);startRecordingPhase()">Skip <i class="fas fa-forward"></i></button></div>';}
+function startRecordingPhase(){if(!isSecureContext()){state.practiceState='question';renderPractice();showToast('Microphone needs HTTPS or localhost.','error');return;}state.practiceState='recording';var mx=state.selectedPart===2?120:180;state.speakTimer=mx;renderPractice();startRecording();state.timerInterval=setInterval(function(){state.speakTimer--;var te=$('#speak-timer');if(te)te.textContent=formatDuration(state.speakTimer);var be=$('#speak-bar');if(be)be.style.width=((mx-state.speakTimer)/mx*100)+'%';if(state.speakTimer<=0)stopAndAnalyze();},1000);}
+function renderPRecording(el){var mx=state.selectedPart===2?120:180,el2=mx-state.speakTimer;el.innerHTML='<div class="fade-in" style="text-align:center;max-width:640px;margin:0 auto;padding-top:20px"><div class="flex items-center justify-center gap-3 mb-6"><span class="badge badge-accent">Part '+state.selectedPart+'</span><span style="color:var(--muted);font-size:13px">'+state.currentTopic+'</span></div><div class="timer-display mb-2" id="speak-timer">'+formatDuration(state.speakTimer)+'</div><div style="height:3px;border-radius:2px;background:var(--border);max-width:300px;margin:0 auto 32px"><div id="speak-bar" style="height:100%;border-radius:2px;background:var(--accent);width:'+(el2/mx*100)+'%;transition:width 1s linear"></div></div><button class="record-btn recording" onclick="stopAndAnalyze()" style="margin:0 auto 32px;display:flex"><div class="inner"></div></button><p style="font-size:13px;color:var(--muted);margin-bottom:24px">Tap to stop</p><div class="transcript-box" id="live-transcript" style="text-align:left"><span style="color:var(--muted);font-style:italic">Listening...</span></div><div class="flex justify-center gap-3 mt-3"><span style="font-size:11px;color:var(--muted)"><span style="color:var(--warn);text-decoration:underline;text-decoration-style:dotted">Yellow</span>=filler</span><span style="font-size:11px;color:var(--muted)"><span style="color:var(--success);font-weight:600">Green</span>=advanced</span></div></div>';renderTranscript();}
+async function stopAndAnalyze(){stopRecording();state.practiceState='analyzing';renderPractice();setTimeout(async function(){state.lastAnalysis=analyzeResponse(state.finalTranscript,state.recordDuration,state.selectedPart);if(state.finalTranscript.length>5){try{await saveSessionToFirebase(state.lastAnalysis);}catch(e){showToast('Failed to save. Check connection.','error');}}state.practiceState='results';renderPractice();if(state.lastAnalysis.overall>=7)setTimeout(fireConfetti,300);},1500);}
+function renderPAnalyzing(el){el.innerHTML='<div class="fade-in" style="text-align:center;padding:80px 20px"><div class="analyzing-dots mb-6"><span></span><span></span><span></span></div><h2 class="font-display text-2xl font-bold mb-2">Evaluating...</h2></div>';}
+function renderPResults(el){var a=state.lastAnalysis;if(!a||a.overall===0){el.innerHTML='<div class="fade-in" style="text-align:center;padding:80px 20px"><i class="fas fa-microphone-slash text-4xl mb-4" style="color:var(--danger);opacity:.5;display:block"></i><h2 class="font-display text-2xl font-bold mb-2">No Speech Detected</h2><p style="color:var(--muted);font-size:14px;margin-bottom:24px">Check your microphone.</p><div class="flex gap-3 justify-center flex-wrap"><button class="btn btn-secondary" onclick="navigate(\'mictest\')"><i class="fas fa-headphones"></i> Test Mic</button><button class="btn btn-primary" onclick="selectTopic(\''+state.selectedCatId+'\')"><i class="fas fa-redo"></i> Retry</button></div></div>';return;}var ci=topicCategories.find(function(c){return c.id===state.selectedCatId;}),cr=[{k:'fc',n:'Fluency & Coherence',v:a.fc},{k:'lr',n:'Lexical Resource',v:a.lr},{k:'gra',n:'Grammatical Range',v:a.gra},{k:'p',n:'Pronunciation',v:a.p}];var h='<div class="fade-in"><div class="flex items-center justify-between mb-8 flex-wrap gap-3"><button class="btn btn-ghost" onclick="state.practiceState=\'topics\';renderPractice()"><i class="fas fa-arrow-left"></i> Topics</button><span class="badge badge-accent">Part '+state.selectedPart+(ci?' &mdash; '+ci.name:'')+'</span></div><div class="flex flex-col items-center mb-10"><div class="score-circle mb-3" style="border-color:'+getBandColor(a.overall)+'"><div class="score-num" style="color:'+getBandColor(a.overall)+'">'+a.overall.toFixed(1)+'</div><div class="score-label">Band Score</div></div><div class="badge" style="background:'+getBandColor(a.overall)+'22;color:'+getBandColor(a.overall)+'">'+getBandLabel(a.overall)+'</div></div><div class="grid md:grid-cols-2 gap-4 mb-8">';cr.forEach(function(c){h+='<div class="card" style="padding:18px 20px"><div class="flex justify-between items-center mb-2"><span style="font-size:13px;color:var(--muted)">'+c.n+'</span><span class="font-display font-semibold text-sm" style="color:'+getBandColor(c.v)+'">'+c.v.toFixed(1)+'</span></div><div class="criteria-bar"><div class="criteria-bar-fill" data-width="'+(c.v/9*100)+'%" style="width:0%;background:'+getBandColor(c.v)+'"></div></div></div>';});h+='</div><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"><div class="card stat-card"><div class="stat-val">'+a.wordCount+'</div><div class="stat-label">Words</div></div><div class="card stat-card"><div class="stat-val">'+a.wpm+'</div><div class="stat-label">WPM</div></div><div class="card stat-card"><div class="stat-val">'+a.uniqueWords+'</div><div class="stat-label">Unique</div></div><div class="card stat-card"><div class="stat-val">'+a.details.typeTokenRatio+'%</div><div class="stat-label">Diversity</div></div></div><div class="grid md:grid-cols-2 gap-5 mb-8"><div class="card"><h3 class="font-display font-semibold text-sm mb-3" style="color:var(--success)"><i class="fas fa-check-circle" style="margin-right:6px"></i>Strengths</h3>';a.strengths.forEach(function(s){h+='<div class="flex gap-2 mb-2" style="font-size:13px;line-height:1.6"><span style="color:var(--success);margin-top:2px"><i class="fas fa-plus" style="font-size:9px"></i></span><span>'+s+'</span></div>';});h+='</div><div class="card"><h3 class="font-display font-semibold text-sm mb-3" style="color:var(--warn)"><i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>Improve</h3>';a.weaknesses.forEach(function(w){h+='<div class="flex gap-2 mb-2" style="font-size:13px;line-height:1.6"><span style="color:var(--warn);margin-top:2px"><i class="fas fa-arrow-up" style="font-size:9px"></i></span><span>'+w+'</span></div>';});h+='</div></div>';if(a.advancedUsed.length>0){h+='<div class="card mb-5"><h3 class="font-display font-semibold text-sm mb-3"><i class="fas fa-gem" style="color:var(--success);margin-right:6px"></i>Advanced Vocabulary</h3><div class="flex flex-wrap gap-2">';a.advancedUsed.forEach(function(w){h+='<span class="badge badge-success">'+w+'</span>';});h+='</div></div>';}if(a.connectorsUsed.length>0){h+='<div class="card mb-8"><h3 class="font-display font-semibold text-sm mb-3"><i class="fas fa-link" style="color:var(--accent);margin-right:6px"></i>Connectors</h3><div class="flex flex-wrap gap-2">';a.connectorsUsed.forEach(function(w){h+='<span class="badge badge-accent">'+w+'</span>';});h+='</div></div>';}h+='<div class="card mb-8"><h3 class="font-display font-semibold text-sm mb-3"><i class="fas fa-file-lines" style="color:var(--muted);margin-right:6px"></i>Transcript</h3><div class="transcript-box" style="max-height:240px">'+highlightTranscript(state.finalTranscript)+'</div></div><div class="flex flex-wrap justify-center gap-3"><button class="btn btn-primary" onclick="startRecordingPhase()"><i class="fas fa-redo"></i> Retry</button><button class="btn btn-secondary" onclick="selectTopic(\''+state.selectedCatId+'\')"><i class="fas fa-shuffle"></i> New</button><button class="btn btn-secondary" onclick="state.practiceState=\'topics\';renderPractice()"><i class="fas fa-th"></i> Topics</button><button class="btn btn-ghost" onclick="navigate(\'dashboard\')"><i class="fas fa-home"></i> Home</button></div></div>';el.innerHTML=h;setTimeout(function(){$$('#view-practice .criteria-bar-fill').forEach(function(e){e.style.width=e.getAttribute('data-width');});},50);}
+
+/* ========== RENDER: HISTORY ========== */
+async function renderHistory(){await refreshSessions();var h=getHistory().slice().reverse(),el=$('#view-history');var html='<div class="fade-in"><div class="flex items-center justify-between mb-6"><h1 class="font-display text-3xl font-bold">Practice History</h1>';html+='</div>';if(h.length>0){html+='<div class="flex flex-wrap gap-2 mb-6"><button class="btn btn-secondary btn-sm" onclick="filterHist(0)">All</button>';[1,2,3].forEach(function(p){html+='<button class="btn btn-secondary btn-sm" onclick="filterHist('+p+')">Part '+p+'</button>';});html+='</div><div id="history-list" class="flex flex-col gap-3">'+buildHistItems(h)+'</div>';}else{html+='<div class="card text-center py-16" style="color:var(--muted)"><i class="fas fa-clock-rotate-left text-3xl mb-3" style="color:var(--border);display:block"></i><h3 class="font-display font-semibold text-lg mb-2">No History Yet</h3><button class="btn btn-primary" onclick="navigate(\'practice\')"><i class="fas fa-microphone"></i> Start Practice</button></div>';}html+='</div>';el.innerHTML=html;}
+function buildHistItems(items){var h='';items.forEach(function(s,i){h+='<div class="history-item" onclick="showHistDetail('+(getHistory().length-1-i)+')"><div class="flex items-center justify-between"><div class="flex items-center gap-3"><div style="width:44px;height:44px;border-radius:12px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="font-display font-bold text-sm" style="color:var(--accent)">P'+s.part+'</span></div><div><div style="font-size:14px;font-weight:600">'+s.topic+'</div><div style="font-size:12px;color:var(--muted)">'+new Date(s.date).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' &middot; '+s.wordCount+'w</div></div></div><div class="font-display font-bold text-xl" style="color:'+getBandColor(s.analysis.overall)+'">'+s.analysis.overall.toFixed(1)+'</div></div></div>';});return h;}
+function filterHist(part){var h=getHistory().slice().reverse().filter(function(s){return part===0||s.part===part;});var l=$('#history-list');if(l)l.innerHTML=buildHistItems(h);}
+function showHistDetail(idx){var s=getHistory()[idx];if(!s)return;state.lastAnalysis=s.analysis;state.finalTranscript=s.transcript;state.selectedPart=s.part;state.selectedCatId=s.category;state.currentTopic=s.topic;state.practiceState='results';navigate('practice');}
+
+/* ========== RENDER: TIPS ========== */
+function renderTips(){var h='<div class="fade-in"><h1 class="font-display text-3xl font-bold mb-2">Tips & Strategies</h1><p style="color:var(--muted);font-size:15px;margin-bottom:32px">Actionable advice for each criterion</p>';tipsData.forEach(function(sec){h+='<div class="mb-8"><h2 class="font-display text-xl font-bold mb-4" style="color:'+sec.color+'"><i class="fas '+sec.icon+'" style="margin-right:8px"></i>'+sec.criterion+'</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">';sec.tips.forEach(function(t){h+='<div class="tip-card" style="border-left-color:'+sec.color+'"><div class="font-display font-semibold text-sm mb-1">'+t.title+'</div><p style="font-size:13px;color:var(--muted);line-height:1.6">'+t.desc+'</p></div>';});h+='</div></div>';});h+='</div>';$('#view-tips').innerHTML=h;}
+
+/* ========== RENDER: ADMIN (reads from Firebase) ========== */
+async function renderAdmin(){var el=$('#view-admin');if(state.adminSubView==='overview')await renderAdminOverview(el);else if(state.adminSubView==='student')await renderAdminStudent(el);}
+
+async function renderAdminOverview(el){
+  el.innerHTML='<div class="fade-in" style="text-align:center;padding:80px 20px"><div class="loading-spinner"></div><p style="color:var(--muted);margin-top:16px">Loading all students...</p></div>';
+  try{
+    var students=await loadAllStudentsForAdmin();
+    var totalS=students.length,totalSessions=0,avgB=0,activeToday=0,today=new Date().toDateString();
+    students.forEach(function(s){totalSessions+=s.sessions.length;s.sessions.forEach(function(ss){if(new Date(ss.date).toDateString()===today)activeToday++;});});
+    if(totalSessions>0){var sum=0;students.forEach(function(s){s.sessions.forEach(function(ss){sum+=ss.analysis.overall;});});avgB=sum/totalSessions;}
+    var html='<div class="fade-in"><div class="flex items-center justify-between mb-8 flex-wrap gap-4"><div><h1 class="font-display text-3xl font-bold">Instructor Dashboard</h1><p style="color:var(--muted);font-size:14px">All student progress — live from Firebase</p></div><button class="btn btn-ghost" onclick="state.adminSubView=\'overview\';state.adminUnlocked=false;navigate(\'dashboard\')"><i class="fas fa-right-from-bracket"></i> Exit Admin</button></div>';
+    html+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"><div class="card stat-card"><div class="stat-val" style="color:var(--admin)">'+totalS+'</div><div class="stat-label">Students</div></div><div class="card stat-card"><div class="stat-val">'+totalSessions+'</div><div class="stat-label">Total Sessions</div></div><div class="card stat-card"><div class="stat-val" style="color:'+getBandColor(avgB)+'">'+(avgB>0?avgB.toFixed(1):'&mdash;')+'</div><div class="stat-label">Avg Band</div></div><div class="card stat-card"><div class="stat-val" style="color:var(--accent)">'+activeToday+'</div><div class="stat-label">Today</div></div></div>';
+    if(students.length===0){html+='<div class="card text-center py-16" style="color:var(--muted)"><i class="fas fa-users text-3xl mb-3" style="color:var(--border);display:block"></i><h3 class="font-display font-semibold text-lg mb-2">No Students Yet</h3><p>Students will appear after they register and practice.</p></div>';}else{html+='<div class="card"><h3 class="font-display font-semibold text-base mb-4">All Students</h3><div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Sessions</th><th>Avg Band</th><th>Best</th><th>Last Active</th></tr></thead><tbody>';students.forEach(function(s){var n=s.sessions.length,ab=n>0?s.sessions.reduce(function(a,ss){return a+ss.analysis.overall;},0)/n:0,bb=n>0?Math.max.apply(null,s.sessions.map(function(ss){return ss.analysis.overall;})):0,lastD=n>0?new Date(s.sessions[n-1].date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Never';html+='<tr onclick="openAdminStudent(\''+s.id+'\')"><td style="font-weight:600">'+s.name+'</td><td style="color:var(--muted);font-size:13px">'+s.email+'</td><td>'+n+'</td><td style="color:'+getBandColor(ab)+';font-weight:600">'+
